@@ -3,18 +3,25 @@
 // NetIDs: vcs5888, 
 
 // Some useful defines...please add your own
-`define WORD_WIDTH 32
-`define NUM_REGS 32
-`define OPCODE_COMPUTE    7'b0110011
-`define OPCODE_BRANCH     7'b1100011
-`define OPCODE_LOAD       7'b0000011
-`define OPCODE_STORE      7'b0100011 
-`define FUNC_ADD      3'b000
-`define AUX_FUNC_ADD  7'b0000000
-`define AUX_FUNC_SUB  7'b0100000
-`define SIZE_BYTE  2'b00
-`define SIZE_HWORD 2'b01
-`define SIZE_WORD  2'b10
+//General Parameters
+   `define WORD_WIDTH 32
+   `define NUM_REGS 32
+//Opcodes
+   `define OPCODE_COMPUTE    7'b0110011
+   `define OPCODE_BRANCH     7'b1100011
+   `define OPCODE_LOAD       7'b0000011
+   `define OPCODE_STORE      7'b0100011 
+   `define FUNC_ADD      3'b000
+   `define AUX_FUNC_ADD  7'b0000000
+   `define AUX_FUNC_SUB  7'b0100000
+   `define OPCODE_LUI 7'b0110111
+   `define OPCODE_AUIPC 7'b0010111
+   `define OPCODE_JAL 7'b1101111 
+   `define OPCODE_JALR 7'b1100111 
+// idk what there are for yet
+   `define SIZE_BYTE  2'b00
+   `define SIZE_HWORD 2'b01
+   `define SIZE_WORD  2'b10
 
 module SingleCycleCPU(halt, clk, rst);
    output halt;
@@ -28,10 +35,11 @@ module SingleCycleCPU(halt, clk, rst);
    wire [4:0]  Rsrc1, Rsrc2, Rdst;
    wire [`WORD_WIDTH-1:0] Rdata1, Rdata2, RWrdata;
    wire        RWrEn;
-   wire [9:0] imm_u_type;
+   wire [19:0] imm_u_type;
    wire [6:0] imm_front_s_type;
    wire [4:0] imm_back_s_type; 
    wire [19:0] imm_i_type;
+   wire [31:0] imm_j_type;
 
    wire [`WORD_WIDTH-1:0] NPC, PC_Plus_4;
    wire [6:0]  opcode;
@@ -40,27 +48,41 @@ module SingleCycleCPU(halt, clk, rst);
    wire [2:0]  funct3;
 
    wire invalid_op;
+   wire valid_op;
    
+   //Inputs/outputs of PC register, MEM, RF; We need to mux them depending on the instruction
+   //Don't double drive outputs of mem, reg, ex; They will result in Xs on waveform
+   wire [31:0] eu_out;
+   wire [31:0] pc_reg_in;
+
    //Characterize the op-code to its instruction type (R, I, S, U)
+   //tbh not sure if this is needed so maybe can delete, but good information to have
    wire [1:0] cur_inst_type;
    parameter R_TYPE = 2'b00;
    parameter I_TYPE = 2'b01;
    parameter S_TYPE = 2'b10;
    parameter U_TYPE = 2'b11;
 
-   //For lui
+   //Input Controls to RF, PC_REG, MEM
       //Data
-         assign RWrdata = (opcode = 7'b0110111) ? (imm_u_type << 12) : 0;
-         assign RWrdata = (opcode = 7'b0110111) ? (Rdst) : 0;
-         assign cur_inst_type = (opcode = 7'b0110111) ? U_TYPE : 0; //not sure if i need this characterization of instruction type
+         assign RWrdata = (opcode == `OPCODE_LUI) ? (imm_u_type << 12) :  //lui
+                          (opcode == `OPCODE_AUIPC) ? (imm_u_type << 12 + PC) : //auipc 
+                          (opcode == `OPCODE_JAL) ? (PC + 4) : 
+                          (opcode == `OPCODE_JALR) ? (PC + 4) : 0;              
+         assign cur_inst_type = (opcode == `OPCODE_LUI) ? U_TYPE : 0; //not sure if i need this characterization of instruction type
+      
       //Control
-         assign RWrEn = (opcode = 7'b0110111) ? 1 : 0;  //need to write to register
-   
+         assign RWrEn = (opcode == `OPCODE_LUI) ? 1 : 
+                        (opcode == `OPCODE_AUIPC) ? 1 : 
+                        (opcode == `OPCODE_JAL) ? 1 : 
+                        (opcode == `OPCODE_JALR) ? 1: 0;  
 
    // Only support R-TYPE ADD and SUB
-   assign halt = invalid_op;
+   assign halt = !valid_op; //changed this to detect valid_op instead of invalid
    assign invalid_op = !((opcode == `OPCODE_COMPUTE) && (funct3 == `FUNC_ADD) &&
 		      ((funct7 == `AUX_FUNC_ADD) || (funct7 == `AUX_FUNC_SUB)));
+   assign valid_op = (opcode == `OPCODE_LUI) | (opcode == `OPCODE_AUIPC)|
+                     (opcode == `OPCODE_JAL) | (opcode == `OPCODE_JALR);
      
    // System State 
    Mem   MEM(.InstAddr(PC), .InstOut(InstWord), 
@@ -79,20 +101,22 @@ module SingleCycleCPU(halt, clk, rst);
    assign Rsrc2 = InstWord[24:20];
    assign funct3 = InstWord[14:12];  // R-Type, I-Type, S-Type
    assign funct7 = InstWord[31:25];  // R-Type
-   assign imm_u_type = InstWord[32:12];
+   assign imm_u_type = InstWord[31:12];
    assign imm_front_s_type = InstWord[32:26];
    assign imm_back_s_type = InstWord[11:7];
    assign imm_i_type = InstWord[31:20]; 
+   assign imm_j_type = (opcode == `OPCODE_JALR) ? ((Rdata1 + {{20{InstWord[31]}},InstWord[31:20]}) & 32'hFFFFFFFE) : //jalr
+                     (PC + {{11{InstWord[31]}}, InstWord[19:12],InstWord[20], InstWord[30:21],1'b0}); //jal            
 
    assign MemWrEn = 1'b0; // Change this to allow stores
    //assign RWrEn = 1'b1;  // At the moment every instruction will write to the register file
 
    // Hardwired to support R-Type instructions -- please add muxes and other control signals
-   ExecutionUnit EU(.out(RWrdata), .opA(Rdata1), .opB(Rdata2), .func(funct3), .auxFunc(funct7));
+   ExecutionUnit EU(.out(eu_out), .opA(Rdata1), .opB(Rdata2), .func(funct3), .auxFunc(funct7));
 
    // Fetch Address Datapath
    assign PC_Plus_4 = PC + 4;
-   assign NPC = PC_Plus_4;
+   assign NPC = ((opcode == `OPCODE_JALR) | (opcode == `OPCODE_JAL)) ? imm_j_type : PC_Plus_4;
    
 endmodule // SingleCycleCPU
 

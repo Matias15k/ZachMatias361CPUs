@@ -1,0 +1,321 @@
+$date
+	Thu Nov  6 12:55:33 2025
+$end
+$version
+	Icarus Verilog
+$end
+$timescale
+	1s
+$end
+$scope module tb $end
+$var wire 1 ! halt $end
+$var reg 1 " clk $end
+$var reg 1 # exit $end
+$var reg 640 $ mem_in_fname [639:0] $end
+$var reg 640 % mem_out_fname [639:0] $end
+$var reg 640 & regs_in_fname [639:0] $end
+$var reg 640 ' regs_out_fname [639:0] $end
+$var reg 1 ( rst $end
+$var reg 640 ) signal_dump_fname [639:0] $end
+$scope module CPU $end
+$var wire 32 * DataAddr [31:0] $end
+$var wire 2 + MemSize [1:0] $end
+$var wire 1 , MemWrEn $end
+$var wire 32 - StoreData [31:0] $end
+$var wire 1 " clk $end
+$var wire 1 ( rst $end
+$var wire 1 . valid_op $end
+$var wire 7 / opcode [6:0] $end
+$var wire 1 0 invalid_op $end
+$var wire 20 1 imm_u_type [19:0] $end
+$var wire 32 2 imm_j_type [31:0] $end
+$var wire 20 3 imm_i_type [19:0] $end
+$var wire 7 4 imm_front_s_type [6:0] $end
+$var wire 5 5 imm_back_s_type [4:0] $end
+$var wire 1 ! halt $end
+$var wire 7 6 funct7 [6:0] $end
+$var wire 3 7 funct3 [2:0] $end
+$var wire 32 8 eu_out [31:0] $end
+$var wire 2 9 cur_inst_type [1:0] $end
+$var wire 5 : Rsrc2 [4:0] $end
+$var wire 5 ; Rsrc1 [4:0] $end
+$var wire 5 < Rdst [4:0] $end
+$var wire 32 = Rdata2 [31:0] $end
+$var wire 32 > Rdata1 [31:0] $end
+$var wire 32 ? RWrdata [31:0] $end
+$var wire 1 @ RWrEn $end
+$var wire 32 A PC_Plus_4 [31:0] $end
+$var wire 32 B PC [31:0] $end
+$var wire 32 C NPC [31:0] $end
+$var wire 32 D InstWord [31:0] $end
+$var wire 32 E DataWord [31:0] $end
+$scope module EU $end
+$var wire 7 F auxFunc [6:0] $end
+$var wire 3 G func [2:0] $end
+$var wire 32 H out [31:0] $end
+$var wire 32 I opB [31:0] $end
+$var wire 32 J opA [31:0] $end
+$upscope $end
+$scope module MEM $end
+$var wire 1 " CLK $end
+$var wire 32 K DataAddr [31:0] $end
+$var wire 32 L DataAddrH [31:0] $end
+$var wire 32 M DataAddrW [31:0] $end
+$var wire 32 N DataIn [31:0] $end
+$var wire 2 O DataSize [1:0] $end
+$var wire 32 P InstAddrW [31:0] $end
+$var wire 1 , WE $end
+$var wire 32 Q InstOut [31:0] $end
+$var wire 32 R InstAddr [31:0] $end
+$var wire 32 S DataOut [31:0] $end
+$upscope $end
+$scope module PC_REG $end
+$var wire 1 " CLK $end
+$var wire 32 T Din [31:0] $end
+$var wire 1 ( RST $end
+$var wire 1 U WE $end
+$var reg 32 V Qout [31:0] $end
+$upscope $end
+$scope module RF $end
+$var wire 5 W AddrA [4:0] $end
+$var wire 5 X AddrB [4:0] $end
+$var wire 5 Y AddrW [4:0] $end
+$var wire 1 " CLK $end
+$var wire 32 Z DataInW [31:0] $end
+$var wire 1 @ WenW $end
+$var wire 32 [ DataOutB [31:0] $end
+$var wire 32 \ DataOutA [31:0] $end
+$upscope $end
+$upscope $end
+$upscope $end
+$enddefinitions $end
+#0
+$dumpvars
+b0 \
+b0 [
+b10010001101000101000000000000 Z
+b101 Y
+b11 X
+b1000 W
+b0 V
+1U
+b100 T
+bx S
+b0 R
+b10010001101000101001010110111 Q
+b0 P
+bz O
+bz N
+bx00 M
+bx0 L
+bz K
+b0 J
+b0 I
+b0 H
+b101 G
+b1001 F
+bx E
+b10010001101000101001010110111 D
+b100 C
+b0 B
+b100 A
+1@
+b10010001101000101000000000000 ?
+b0 >
+b0 =
+b101 <
+b1000 ;
+b11 :
+b11 9
+b0 8
+b101 7
+b1001 6
+b101 5
+bx000100 4
+b100100011 3
+b1000101100100100010 2
+b10010001101000101 1
+10
+b110111 /
+1.
+bz -
+0,
+bz +
+bz *
+b1110011011010010110111001100111011011000110010100101110011101100110001101100100 )
+1(
+b11100100110010101100111011100110101111101101111011101010111010000101110011010000110010101111000 '
+b111001001100101011001110111001101011111011010010110111000101110011010000110010101111000 &
+b110110101100101011011010101111101101111011101010111010000101110011010000110010101111000 %
+b1101101011001010110110101011111011010010110111000101110011010000110010101111000 $
+0#
+0"
+0!
+$end
+#5
+1"
+#10
+1@
+b0 9
+b10000000000000000 ?
+b10000000000000000 Z
+bx000000 4
+b0 6
+b0 F
+b0 3
+b0 :
+b0 X
+b0 ;
+b0 W
+b1 1
+b1 7
+b1 G
+b1010 5
+b1010 <
+b1010 Y
+b10111 /
+b1010100010111 D
+b1010100010111 Q
+b100 P
+b1000 C
+b1000 T
+b1000000000100 2
+b1000 A
+b100 B
+b100 R
+b100 V
+0"
+#15
+1"
+#20
+1@
+b11000 3
+b11000 :
+b11000 X
+b1100000000000 1
+b0 7
+b0 G
+b1 5
+b1 <
+b1 Y
+b1101111 /
+b1100 ?
+b1100 Z
+b1100000000000000011101111 D
+b1100000000000000011101111 Q
+b1000 P
+b100000 C
+b100000 T
+b100000 2
+b1100 A
+b1000 B
+b1000 R
+b1000 V
+0"
+#25
+1"
+#30
+1@
+b1100 8
+b1100 H
+b1100 >
+b1100 J
+b1100 \
+b100100 ?
+b100100 Z
+b1100000001000 1
+b1 ;
+b1 W
+b10 5
+b10 <
+b10 Y
+b1100111 /
+b100100 C
+b100100 T
+b1100000001000000101100111 D
+b1100000001000000101100111 Q
+b100000 P
+b100100 2
+b100100 A
+b100000 B
+b100000 R
+b100000 V
+0"
+#35
+1"
+#40
+0@
+b0 8
+b0 H
+b101000 C
+b101000 T
+b0 ?
+b0 Z
+b0 >
+b0 J
+b0 \
+1!
+0.
+b0 3
+b0 :
+b0 X
+b0 5
+b0 1
+b0 ;
+b0 W
+b0 <
+b0 Y
+b1110011 /
+b1110011 D
+b1110011 Q
+b100100 P
+b101000 A
+b100100 B
+b100100 R
+b100100 V
+0"
+#45
+1"
+#50
+bx000000x0xx00 ?
+bx000000x0xx00 Z
+bx 8
+bx H
+x0
+x@
+bx =
+bx I
+bx [
+bx >
+bx J
+bx \
+x!
+x.
+bx 9
+bx 4
+bx 6
+bx F
+b0xxxxxxxxxxxx 3
+bx :
+bx X
+bx 1
+bx 7
+bx G
+bx ;
+bx W
+bx 5
+bx <
+bx Y
+bx /
+bx D
+bx Q
+b101000 P
+bx C
+bx T
+bx 2
+b101100 A
+b101000 B
+b101000 R
+b101000 V
+1#
+0"

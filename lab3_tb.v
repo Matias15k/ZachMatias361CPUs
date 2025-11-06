@@ -62,6 +62,14 @@ module tb;
         $finish;      
    end
 
+   // Timeout protection (10,000 time units)
+    initial begin
+    #10000;
+    $display("TIMEOUT: CPU did not halt within expected time.");
+    $finish;
+    end
+
+
 endmodule // tb
 
 
