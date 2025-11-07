@@ -8,7 +8,7 @@ B7      // [0x00] LUI   x5, 0x12345        (opcode=0110111)
 00
 00
 
-EF      // [0x08] JAL   x1, +24            (0x018000EF)
+EF      // [0x08] JAL   x1, +24            (0x018000EF) ... x1 has 0x0C now
 00      
 80
 01
@@ -39,8 +39,43 @@ EF      // [0x08] JAL   x1, +24            (0x018000EF)
 80
 01
 
+63      // [0x24] BEQ x5, x6, +8    (0x02518063) //Branch NOT taken, increment pc as usual. x5 and x6 have differing content
+80
+51
+02
 
-73      // [0x24] ECALL                    (0x00000073)
+63      // [0x28] BEQ x3, x4, +8    (0x02320063) //Branch taken, increment pc by 8, x3 and x4 have same content
+00
+32
+02
+
+13      // [0x2c] NOP
 00
 00
 00
+
+13      // [0x30] NOP
+00
+00
+00
+
+13      // [0x34] NOP
+00
+00
+00
+
+63      // [0x38] BNE x1, x2, +8    (0x02111063) //Branch not taken, increment pc by 4, x1 and x2 have same content
+10
+11
+02
+
+73      // [0x3c] ECALL                    (0x00000073)
+00
+00
+00
+
+13      // [0x40] NOP
+00
+00
+00
+
