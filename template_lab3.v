@@ -46,6 +46,7 @@ module SingleCycleCPU(halt, clk, rst);
    wire [4:0] imm_back_s_type; 
    wire [19:0] imm_i_type;
    wire [31:0] imm_j_type;
+   wire [31:0] imm_b_type;
 
    wire [`WORD_WIDTH-1:0] NPC, PC_Plus_4;
    wire [6:0]  opcode;
@@ -60,6 +61,7 @@ module SingleCycleCPU(halt, clk, rst);
    //Don't double drive outputs of mem, reg, ex; They will result in Xs on waveform
    wire [31:0] eu_out;
    wire [6:0] eu_funct7_in;
+   wire [2:0] eu_funct3_in;
    wire [31:0] pc_reg_in;
 
    //Characterize the op-code to its instruction type (R, I, S, U)
@@ -78,8 +80,11 @@ module SingleCycleCPU(halt, clk, rst);
                           (opcode == `OPCODE_JAL) ? (PC + 4) : 
                           (opcode == `OPCODE_JALR) ? (PC + 4) : 0;              
          assign cur_inst_type = (opcode == `OPCODE_LUI) ? U_TYPE : 0; //not sure if i need this characterization of instruction type
-         assign eu_funct7_in = (opcode == `OPCODE_BRANCH && (funct3 == 3'b000 | funct3 == 3'b001)) ? `AUX_FUNC_SUB : 0; //beq, bne
-
+         assign eu_funct7_in = (opcode == `OPCODE_BRANCH && (funct3 == `FUNC_BEQ | funct3 == `FUNC_BNE)) ? `AUX_FUNC_SUB : //beq, bne 
+                               (opcode == `OPCODE_BRANCH && (funct3 == `FUNC_BLT | funct3 == `FUNC_BGE | funct3 == `FUNC_BLTU | funct3 == `FUNC_BGEU)) ? `AUX_FUNC_ADD : 0; //blt, bge, bltu, bgeu
+         assign eu_funct3_in = (opcode == `OPCODE_BRANCH && (funct3 == `FUNC_BNE)) ? 3'b000 : //bne
+                               (opcode == `OPCODE_BRANCH && (funct3 == `FUNC_BLT | funct3 == `FUNC_BGE)) ? 3'b010 : //blt, bge
+                               (opcode == `OPCODE_BRANCH && (funct3 == `FUNC_BLTU | funct3 == `FUNC_BGEU)) ? 3'b011 : funct3; //bltu, bgeu
       //Control
          assign RWrEn = (opcode == `OPCODE_LUI) ? 1 : 
                         (opcode == `OPCODE_AUIPC) ? 1 : 
@@ -118,19 +123,26 @@ module SingleCycleCPU(halt, clk, rst);
    assign imm_i_type = InstWord[31:20]; 
    assign imm_j_type = (opcode == `OPCODE_JALR) ? ((Rdata1 + {{20{InstWord[31]}},InstWord[31:20]}) & 32'hFFFFFFFE) : //jalr
                      (PC + {{11{InstWord[31]}}, InstWord[19:12],InstWord[20], InstWord[30:21],1'b0}); //jal            
-
+   assign imm_b_type = {{19{InstWord[31]}},   
+                        InstWord[31],         
+                        InstWord[7],          
+                        InstWord[30:25],      
+                        InstWord[11:8], 
+                        1'b0      
+                        };
    assign MemWrEn = 1'b0; // Change this to allow stores
    //assign RWrEn = 1'b1;  // At the moment every instruction will write to the register file
 
    // Hardwired to support R-Type instructions -- please add muxes and other control signals
-   ExecutionUnit EU(.out(eu_out), .opA(Rdata1), .opB(Rdata2), .func(funct3), .auxFunc(eu_funct7_in));
+   ExecutionUnit EU(.out(eu_out), .opA(Rdata1), .opB(Rdata2), .func(eu_funct3_in), .auxFunc(eu_funct7_in));
 
    // Fetch Address Datapath, notably PC_MEM
    assign PC_Plus_4 = PC + 4;
-   assign NPC = ((opcode == `OPCODE_JALR) | (opcode == `OPCODE_JAL)) ? imm_j_type : 
-                (opcode == `OPCODE_BRANCH && funct3 == `FUNC_BEQ && eu_out == 0) ? (PC + {InstWord[31] , InstWord [7] , InstWord [30:25] , InstWord [11:8]}) : //beq
-                (opcode == `OPCODE_BRANCH && funct3 == `FUNC_BNE && eu_out != 0) ? (PC + {InstWord[31] , InstWord [7] , InstWord [30:25] , InstWord [11:8]}) : PC_Plus_4; //bne
-   
+   assign NPC = ((opcode == `OPCODE_JALR) | (opcode == `OPCODE_JAL)) ? imm_j_type : //jalr, jal
+                (opcode == `OPCODE_BRANCH && funct3 == `FUNC_BEQ && eu_out == 0) ? (PC + imm_b_type) : //beq
+                (opcode == `OPCODE_BRANCH && funct3 == `FUNC_BNE && eu_out != 0) ? (PC + imm_b_type) : //bne
+                (opcode == `OPCODE_BRANCH && (funct3 == `FUNC_BLT | funct3 == `FUNC_BLTU) && eu_out == 1) ? (PC + imm_b_type) : //blt, bltu
+                (opcode == `OPCODE_BRANCH && (funct3 == `FUNC_BGE | funct3 == `FUNC_BGEU) && eu_out == 0) ? (PC + imm_b_type) : PC_Plus_4; //bge, bgeu  
 endmodule // SingleCycleCPU
 
 

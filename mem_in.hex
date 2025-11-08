@@ -44,7 +44,7 @@ EF      // [0x08] JAL   x1, +24            (0x018000EF) ... x1 has 0x0C now
 51
 02
 
-63      // [0x28] BEQ x3, x4, +8    (0x02320063) //Branch taken, increment pc by 8, x3 and x4 have same content
+63      // [0x28] BEQ x0, x6, +16    (0x02320063) //Branch taken, increment pc by 16, x0 and x6 have same content
 00
 32
 02
@@ -64,12 +64,12 @@ EF      // [0x08] JAL   x1, +24            (0x018000EF) ... x1 has 0x0C now
 00
 00
 
-63      // [0x38] BNE x1, x2, +8    (0x02111063) //Branch not taken, increment pc by 4, x1 and x2 have same content
+63      // [0x38] BNE x1, x2, +16    (0x02111063) //Branch taken, increment pc by 16, x1 and x2 have differing content
 10
 11
 02
 
-73      // [0x3c] ECALL                    (0x00000073)
+13      // [0x3c] NOP
 00
 00
 00
@@ -79,3 +79,114 @@ EF      // [0x08] JAL   x1, +24            (0x018000EF) ... x1 has 0x0C now
 00
 00
 
+13      // [0x44] NOP
+00
+00
+00
+
+63      // [0x48] BLT                      (0x02114063)
+40      //reg 1 < reg 2. blt reg2 reg1;  2114063, should not branch
+11  
+02
+
+63      // [0x4c] BLT                      (0x0020C863) 
+C8      //reg 1 < reg 2. blt reg1 reg2;  0220C063, should branch, pc = pc + 16
+20
+00
+
+13      // [0x50] NOP
+00
+00
+00
+
+13      // [0x54] NOP
+00
+00
+00
+
+13      // [0x58] NOP
+00
+00
+00
+
+//b type general structure: 0000001 00001  00010   101     00000  1100011
+//                          +16      rs2   rs1    func3            opcode                                    
+
+//reg5 > reg1, bge reg1 reg5;  0220C063, should not branch, pc = pc + 4
+// 0000001 00101 00001 101 00000 1100011 => 0x0250D063
+63     // [0x5c] BGE 
+D0
+50
+02
+
+//contents of reg 31: 00000001
+//contents of reg 30: 10000000
+//bge reg31 reg30;  01FF5863, should NOT branch, pc = pc + 16
+// 0000000 11111 11110 101 10000 1100011 => 0x01FF5863
+63     // [0x60] BGE (signed)
+58
+FF
+01
+
+//contents of reg 31: 00000001
+//contents of reg 30: 10000000
+//bgeu reg30 reg31;  01EFF863, should branch, pc + 16
+// 0000000 11111 11110 111 10000 1100011 => 0x01FF7863
+63     // [0x64] BGEU (unsigned)
+78
+FF
+01
+
+
+13      // [0x68] NOP
+00
+00
+00
+
+13      // [0x6c] NOP
+00
+00
+00
+
+13      // [0x70] NOP
+00
+00
+00
+                      
+//contents of reg 29: FF000000
+//contents of reg 28: 00000011
+//bltu reg28 reg29; should branch, pc + 16
+// 0000000 11101 11100 110 10000 1100011 => 0x01DE6863
+63     // [0x74] BLTU
+68
+DE
+01
+
+13      // [0x78] NOP
+00
+00
+00
+
+13      // [0x7c] NOP
+00
+00
+00
+
+13      // [0x80] NOP
+00
+00
+00
+
+//contents of reg 29: FF000000
+//contents of reg 28: 00000011
+//blt reg28 reg29; should not branch, pc + 16
+// 0000000 11101 11100 100 10000 1100011 => 0x01DE4863
+63     // [0x84] BLT (signed)
+48
+DE
+01
+
+73      // [0x88] HALT                    (0x00000073)
+00
+00
+00
