@@ -186,7 +186,72 @@ DE
 DE
 01
 
-73      // [0x88] HALT                    (0x00000073)
+//Load instruction general instruction pattern
+// offset(12b)      rs1(5b)    000.     rd(5b).    0000011
+
+// load r7, 5(r27)
+//set r27 to contain 0x0000005f
+//63     // [0x64] BGEU (unsigned)
+//78
+//FF
+//01
+//Correct response: r7 should have 63 stored in increment; PC increments normally 
+// offset(12b)      rs1(5b)    000     rd(5b).    0000011
+// 000000000101     11011      000     00111      0000011 ==> 0x005D8383
+83       // [0x88]
+83
+5D
+00
+
+// load r8, 5(r27) halfword
+//set r27 to contain 0x0000005f
+//63     // [0x64] BGEU (unsigned)
+//78
+//FF
+//01
+//Correct response: r8 should have 7863 stored in increment; PC increments normally 
+// offset(12b)      rs1(5b)    000     rd(5b).    0000011
+// 000000000101     11011      000     01000      0000011 
+// 00000000010111011001010000000011 ==> 0x005D9403 
+03       // [0x8c]
+94
+5D
+00
+
+// load r9, 5(r27) word
+//set r27 to contain 0x0000005f
+//63     // [0x64] BGEU (unsigned)
+//78
+//FF
+//01
+//Correct response: r9 should have 01FF7863 stored in increment; PC increments normally 
+// offset(12b)      rs1(5b)    000     rd(5b).    0000011
+// 000000000101     11011      010     01001      0000011 
+//00000000010111011010010010000011
+//  ==> 0x005DA483
+83       // [0x90]
+A4
+5D
+00
+
+// load r3, 5(r26) word
+//set r27 to contain 0x0000005f
+//63     // [0x64] BGEU (unsigned)
+//78
+//FF
+//01
+//Correct response: r9 should have 01FF7863 stored in increment; PC increments normally 
+// offset(12b)      rs1(5b)    000     rd(5b).    0000011
+// 000000000101     11011      010     01001      0000011 
+//00000000010111011010010010000011
+//  ==> 0x005DA483
+83       // [0x90]
+A4
+5D
+00
+
+
+73      // [0x94] HALT                    (0x00000073)
 00
 00
 00

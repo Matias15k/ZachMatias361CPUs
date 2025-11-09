@@ -16,6 +16,11 @@
    `define FUNC_BLTU 3'b110
    `define FUNC_BGEU 3'b111
    `define OPCODE_LOAD       7'b0000011
+   `define FUNC_LB 3'b000
+   `define FUNC_LH 3'b001
+   `define FUNC_LW 3'b010
+   `define FUNC_LBU 3'b100
+   `define FUNC_LHU 3'b101
    `define OPCODE_STORE      7'b0100011 
    `define FUNC_ADD      3'b000
    `define AUX_FUNC_ADD  7'b0000000
@@ -63,6 +68,7 @@ module SingleCycleCPU(halt, clk, rst);
    wire [6:0] eu_funct7_in;
    wire [2:0] eu_funct3_in;
    wire [31:0] pc_reg_in;
+   wire [31:0] Rdata2_in;
 
    //Characterize the op-code to its instruction type (R, I, S, U)
    //tbh not sure if this is needed so maybe can delete, but good information to have
@@ -77,19 +83,34 @@ module SingleCycleCPU(halt, clk, rst);
       //Data
          assign RWrdata = (opcode == `OPCODE_LUI) ? (imm_u_type << 12) :  //lui
                           (opcode == `OPCODE_AUIPC) ? (imm_u_type << 12 + PC) : //auipc 
-                          (opcode == `OPCODE_JAL) ? (PC + 4) : 
-                          (opcode == `OPCODE_JALR) ? (PC + 4) : 0;              
+                          (opcode == `OPCODE_JAL) ? (PC + 4) : //jal
+                          (opcode == `OPCODE_JALR) ? (PC + 4) : //jalr
+                          (opcode ==  `OPCODE_LOAD && (funct3 == `FUNC_LB)) ? {{24{DataWord[7]}}, DataWord[7:0]} : //lb
+                          (opcode ==  `OPCODE_LOAD && (funct3 == `FUNC_LH)) ? {{16{DataWord[15]}}, DataWord[15:0]} : //lh  
+                          (opcode ==  `OPCODE_LOAD && (funct3 == `FUNC_LW)) ? DataWord : //lw  
+                          (opcode ==  `OPCODE_LOAD && (funct3 == `FUNC_LBU)) ? {{24{1'b0}}, DataWord[7:0]} : //lbu   
+                          (opcode ==  `OPCODE_LOAD && (funct3 == `FUNC_LHU)) ? {{16{1'b0}}, DataWord[15:0]} :0; //lhu        
          assign cur_inst_type = (opcode == `OPCODE_LUI) ? U_TYPE : 0; //not sure if i need this characterization of instruction type
          assign eu_funct7_in = (opcode == `OPCODE_BRANCH && (funct3 == `FUNC_BEQ | funct3 == `FUNC_BNE)) ? `AUX_FUNC_SUB : //beq, bne 
                                (opcode == `OPCODE_BRANCH && (funct3 == `FUNC_BLT | funct3 == `FUNC_BGE | funct3 == `FUNC_BLTU | funct3 == `FUNC_BGEU)) ? `AUX_FUNC_ADD : 0; //blt, bge, bltu, bgeu
          assign eu_funct3_in = (opcode == `OPCODE_BRANCH && (funct3 == `FUNC_BNE)) ? 3'b000 : //bne
                                (opcode == `OPCODE_BRANCH && (funct3 == `FUNC_BLT | funct3 == `FUNC_BGE)) ? 3'b010 : //blt, bge
-                               (opcode == `OPCODE_BRANCH && (funct3 == `FUNC_BLTU | funct3 == `FUNC_BGEU)) ? 3'b011 : funct3; //bltu, bgeu
+                               (opcode == `OPCODE_BRANCH && (funct3 == `FUNC_BLTU | funct3 == `FUNC_BGEU)) ? 3'b011 : //bltu, bgeu
+                               (opcode == `OPCODE_LOAD && (funct3 == `FUNC_LB | funct3 == `FUNC_LH | funct3 == `FUNC_LW | funct3 == `FUNC_LBU | funct3 == `FUNC_LHU)) ? 3'b000: funct3; //lb, lh, lw, lbu, lhu 
+         assign Rdata2_in = (opcode ==  `OPCODE_LOAD && (funct3 == `FUNC_LB | funct3 == `FUNC_LH | funct3 == `FUNC_LW | funct3 == `FUNC_LBU | funct3 == `FUNC_LHU)) ? {{20{imm_i_type[11]}},imm_i_type} : Rdata2; //lb, lh, lw, lbu, lhu
+         assign DataAddr = (opcode ==  `OPCODE_LOAD && (funct3 == `FUNC_LB | funct3 == `FUNC_LH | funct3 == `FUNC_LW | funct3 == `FUNC_LBU | funct3 == `FUNC_LHU)) ? (eu_out) : 0; //lb, lh, lw, lbu, lhu
+         assign MemSize = (opcode ==  `OPCODE_LOAD && (funct3 == `FUNC_LB | funct3 == `FUNC_LBU)) ? 2'b00 : //lb, lbu
+                          (opcode ==  `OPCODE_LOAD && (funct3 == `FUNC_LH | funct3 == `FUNC_LHU)) ? 2'b01 : //lh, lhu
+                          (opcode ==  `OPCODE_LOAD && (funct3 == `FUNC_LW)) ? 2'b10 : 0; //lw
+
       //Control
          assign RWrEn = (opcode == `OPCODE_LUI) ? 1 : 
                         (opcode == `OPCODE_AUIPC) ? 1 : 
                         (opcode == `OPCODE_JAL) ? 1 : 
-                        (opcode == `OPCODE_JALR) ? 1: 0;  
+                        (opcode == `OPCODE_JALR) ? 1: 
+                        (opcode == `OPCODE_LOAD) ? 1: 0;  
+         assign MemWrEn = 0; //load instructions
+
          
    //Halt logic
       // Only support R-TYPE ADD and SUB
@@ -98,7 +119,7 @@ module SingleCycleCPU(halt, clk, rst);
 		      ((funct7 == `AUX_FUNC_ADD) || (funct7 == `AUX_FUNC_SUB)));
    assign valid_op = (opcode == `OPCODE_LUI) | (opcode == `OPCODE_AUIPC)|
                      (opcode == `OPCODE_JAL) | (opcode == `OPCODE_JALR) |
-                     (opcode == `OPCODE_BRANCH);
+                     (opcode == `OPCODE_BRANCH) | (opcode == `OPCODE_LOAD);
      
    // System State 
    Mem   MEM(.InstAddr(PC), .InstOut(InstWord), 
@@ -130,11 +151,11 @@ module SingleCycleCPU(halt, clk, rst);
                         InstWord[11:8], 
                         1'b0      
                         };
-   assign MemWrEn = 1'b0; // Change this to allow stores
+   //assign MemWrEn = 1'b0; // Change this to allow stores
    //assign RWrEn = 1'b1;  // At the moment every instruction will write to the register file
 
    // Hardwired to support R-Type instructions -- please add muxes and other control signals
-   ExecutionUnit EU(.out(eu_out), .opA(Rdata1), .opB(Rdata2), .func(eu_funct3_in), .auxFunc(eu_funct7_in));
+   ExecutionUnit EU(.out(eu_out), .opA(Rdata1), .opB(Rdata2_in), .func(eu_funct3_in), .auxFunc(eu_funct7_in));
 
    // Fetch Address Datapath, notably PC_MEM
    assign PC_Plus_4 = PC + 4;
