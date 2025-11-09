@@ -66,7 +66,8 @@ module SingleCycleCPU(halt, clk, rst);
 
    wire invalid_op;
    wire valid_op;
-   
+   wire memory_alignment_error;
+
    //Inputs/outputs of PC register, MEM, RF; We need to mux them depending on the instruction
    //Don't double drive outputs of mem, reg, ex; They will result in Xs on waveform
    wire [31:0] eu_out;
@@ -134,7 +135,7 @@ module SingleCycleCPU(halt, clk, rst);
          
    //Halt logic
       // Only support R-TYPE ADD and SUB
-   assign halt = !valid_op; //changed this to detect valid_op instead of invalid
+   assign halt = !valid_op | memory_alignment_error; 
    assign invalid_op = !((opcode == `OPCODE_COMPUTE) && (funct3 == `FUNC_ADD) &&
 		      ((funct7 == `AUX_FUNC_ADD) || (funct7 == `AUX_FUNC_SUB)));
    assign valid_op = (opcode == `OPCODE_LUI) | (opcode == `OPCODE_AUIPC)|
@@ -142,6 +143,8 @@ module SingleCycleCPU(halt, clk, rst);
                      (opcode == `OPCODE_BRANCH) | (opcode == `OPCODE_LOAD) |
                      (opcode == `OPCODE_STORE) | (opcode == `OPCODE_COMPUTE_IMMEDIATE) |
                      (opcode == `OPCODE_COMPUTE);
+   assign memory_alignment_error = ((((opcode == `OPCODE_LOAD | opcode == `OPCODE_STORE) && (funct3 == `FUNC_LH | funct3 == `FUNC_LHU | funct3 == `FUNC_SH)) && (DataAddr[0] != 1'b0)) ? 1'b1 : 1'b0) | 
+                                   ((((opcode == `OPCODE_LOAD | opcode == `OPCODE_STORE) && (funct3 == `FUNC_LW | funct3 == `FUNC_SW)) && (DataAddr[1:0] != 2'b00)) ? 1'b1 : 1'b0);
                
    // System State 
    Mem   MEM(.InstAddr(PC), .InstOut(InstWord), 
