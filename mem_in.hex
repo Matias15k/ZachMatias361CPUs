@@ -234,24 +234,49 @@ A4
 5D
 00
 
-// load r3, 5(r26) word
-//set r27 to contain 0x0000005f
-//63     // [0x64] BGEU (unsigned)
-//78
-//FF
-//01
-//Correct response: r9 should have 01FF7863 stored in increment; PC increments normally 
-// offset(12b)      rs1(5b)    000     rd(5b).    0000011
-// 000000000101     11011      010     01001      0000011 
-//00000000010111011010010010000011
-//  ==> 0x005DA483
-83       // [0x90]
-A4
-5D
-00
+// store r26, 4(r25) ; byte-sb
+//set r26 to contain 143999ae
+//set r25 to contain 00000290
+// 0x00000290 location has xxxxx rn 
+//Correct response: mem location 00000295 should have 'ae' stored in increment; PC increments normally 
+// offset(7b)      rs2(5b)  rs1(5b)  000   offset(5b)    0100011
+// 0000000         11010    11001    000     00100       0100011 
+//
+// 00000001101011001000001000100011  ==> 0x01AC8223
+23       // [0x94]
+82
+AC
+01
 
 
-73      // [0x94] HALT                    (0x00000073)
+// store r26, 6(r25) ; byte-sh
+//set r26 to contain 143999ae
+//set r25 to contain 00000290
+// 0x00000290 location has xxxxx rn 
+//Correct response: mem location 00000295 should have '99ae' stored in increment; PC increments normally 
+// offset(7b)      rs2(5b)  rs1(5b)  000   offset(5b)    0100011
+// 0000000         11010    11001    001     00110       0100011 
+//
+// 00000001101011001001001100100011  ==> 0x01AC9323
+23       // [0x98]
+93
+AC
+01
+
+// store r26, 5(r25) ; byte-sw
+//set r26 to contain 143999ae
+//set r25 to contain 00000290
+// 0x00000290 location has xxxxx rn 
+// offset(7b)      rs2(5b)  rs1(5b)  000   offset(5b)    0100011
+// 0000000         11010    11001    010     01110       0100011 
+//
+// 00000001101011001010011100100011  ==> 0x01ACA723
+23       // [0x9c]
+A7
+AC
+01
+
+73      // [0xA0] HALT                    (0x00000073)
 00
 00
 00
