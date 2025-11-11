@@ -88,8 +88,8 @@ module SingleCycleCPU(halt, clk, rst);
 
    //Input Controls to RF, MEM
       //Data
-         assign RWrdata = (opcode == `OPCODE_LUI) ? (imm_u_type << 12) :  //lui
-                          (opcode == `OPCODE_AUIPC) ? (imm_u_type << 12 + PC) : //auipc 
+         assign RWrdata = (opcode == `OPCODE_LUI) ? (sext_imm_u_type << 12) :  //lui
+                          (opcode == `OPCODE_AUIPC) ? (sext_imm_u_type << 12 + PC) : //auipc 
                           (opcode == `OPCODE_JAL) ? (PC + 4) : //jal
                           (opcode == `OPCODE_JALR) ? (PC + 4) : //jalr
                           (opcode ==  `OPCODE_LOAD && (funct3 == `FUNC_LB)) ? {{24{DataWord[7]}}, DataWord[7:0]} : //lb
@@ -101,7 +101,9 @@ module SingleCycleCPU(halt, clk, rst);
                           (opcode ==  `OPCODE_COMPUTE) ? eu_out : 0; //compute instructions          
          assign cur_inst_type = (opcode == `OPCODE_LUI) ? U_TYPE : 0; //not sure if i need this characterization of instruction type
          assign eu_funct7_in = (opcode == `OPCODE_BRANCH && (funct3 == `FUNC_BEQ | funct3 == `FUNC_BNE)) ? `AUX_FUNC_SUB : //beq, bne 
-                               (opcode == `OPCODE_BRANCH && (funct3 == `FUNC_BLT | funct3 == `FUNC_BGE | funct3 == `FUNC_BLTU | funct3 == `FUNC_BGEU)) ? `AUX_FUNC_ADD : funct7; //blt, bge, bltu, bgeu
+                               (opcode == `OPCODE_BRANCH && (funct3 == `FUNC_BLT | funct3 == `FUNC_BGE | funct3 == `FUNC_BLTU | funct3 == `FUNC_BGEU)) ? `AUX_FUNC_ADD : //blt, bge, bltu, bgeu
+                               (opcode == `OPCODE_COMPUTE_IMMEDIATE) ? 7'b0000000: 
+                               funct7; 
          assign eu_funct3_in = (opcode == `OPCODE_BRANCH && (funct3 == `FUNC_BNE)) ? 3'b000 : //bne
                                (opcode == `OPCODE_BRANCH && (funct3 == `FUNC_BLT | funct3 == `FUNC_BGE)) ? 3'b010 : //blt, bge
                                (opcode == `OPCODE_BRANCH && (funct3 == `FUNC_BLTU | funct3 == `FUNC_BGEU)) ? 3'b011 : //bltu, bgeu
@@ -164,6 +166,7 @@ module SingleCycleCPU(halt, clk, rst);
    assign funct3 = InstWord[14:12];  // R-Type, I-Type, S-Type
    assign funct7 = InstWord[31:25];  // R-Type
    assign imm_u_type = InstWord[31:12];
+   assign sext_imm_u_type = {{12{InstWord[31]}},InstWord[31:12]};
    assign imm_front_s_type = InstWord[31:25];
    assign imm_back_s_type = InstWord[11:7];
    assign imm_i_type = InstWord[31:20]; 
@@ -230,11 +233,11 @@ module ExecutionUnit(out, opA, opB, func, auxFunc);
       (func == OP_ADD && auxFunc == FUNC_0) ? (opA + opB) :
       (func == OP_SUB && auxFunc == FUNC_1) ? (opA - opB) :
       (func == OP_SLL && auxFunc == FUNC_0) ? (opA <<  opB[4:0]) :
-      (func == OP_SLT && auxFunc == FUNC_0) ? (($signed(opA) <  $signed(opB)) ? 32'd1 : 32'd0) :
+      (func == OP_SLT && auxFunc == FUNC_0) ? (($signed(opA) < $signed(opB)) ? 32'd1 : 32'd0) :
       (func == OP_SLTU && auxFunc == FUNC_0) ? ((opA < opB) ? 32'd1 : 32'd0) :
       (func == OP_XOR && auxFunc == FUNC_0) ? (opA ^ opB) :
       (func == OP_SRL && auxFunc == FUNC_0) ? (opA >>  opB[4:0]) :
-      (func == OP_SRA && auxFunc == FUNC_1) ? ((opA >> opB[4:0]) | ({32{opA[31]}} << (32 - opB[4:0]))) :
+      (func == OP_SRA && auxFunc == FUNC_1) ? ((sA >>> opB[4:0])) :
       (func == OP_OR  && auxFunc == FUNC_0) ? (opA | opB) :
       (func == OP_AND && auxFunc == FUNC_0) ? (opA & opB) :
 
@@ -265,6 +268,7 @@ module ExecutionUnit(out, opA, opB, func, auxFunc);
                                      (sA == 32'sh80000000 && sB == 32'hFFFFFFFF) ? 32'sh80000000 : // overflow
                                      sA / sB; //normal division
    wire [31:0] div_q_unsigned = div_by_zero ? 32'hFFFFFFFF : uA / uB;
+   
    wire signed [31:0] rem_r_signed = div_by_zero ? sA : 
                                     (sA == 32'sh80000000 && sB == -32'sd1) ? 32'sd0 :sA % sB;
    wire [31:0] rem_r_unsigned = div_by_zero ? uA : uA % uB;
