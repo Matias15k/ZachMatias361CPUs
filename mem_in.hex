@@ -48,10 +48,10 @@ EF      // [0x08] JAL   x1, +24            (0x018000EF) ... x1 has 0x0C now
 51
 02
 
-63      // [0x28] BEQ x0, x6, +16    (0x02320063) //Branch taken, increment pc by 16, x0 and x6 have same content
+13      // [0x28] BEQ x0, x6, +16    (0x02320063) //Branch taken, increment pc by 16, x0 and x6 have same content
 00
-32
-02
+00
+00
 
 13      // [0x2c] NOP
 00

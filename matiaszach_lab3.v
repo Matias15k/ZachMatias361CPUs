@@ -2,7 +2,6 @@
 // Groupname: Zach Tey, Matias Ketema
 // NetIDs: vcs5888, tnc5178
 
-// Some useful defines...please add your own
 //General Parameters
    `define WORD_WIDTH 32
    `define NUM_REGS 32
@@ -34,7 +33,6 @@
    `define OPCODE_AUIPC 7'b0010111
    `define OPCODE_JAL 7'b1101111 
    `define OPCODE_JALR 7'b1100111 
-// idk what there are for yet
    `define SIZE_BYTE  2'b00
    `define SIZE_HWORD 2'b01
    `define SIZE_WORD  2'b10
@@ -57,6 +55,8 @@ module SingleCycleCPU(halt, clk, rst);
    wire [19:0] imm_i_type;
    wire [31:0] imm_j_type;
    wire [31:0] imm_b_type;
+   wire [4:0] Shamt;
+   wire [1:0] SR_control;
 
    wire [`WORD_WIDTH-1:0] NPC, PC_Plus_4;
    wire [6:0]  opcode;
@@ -102,8 +102,7 @@ module SingleCycleCPU(halt, clk, rst);
          assign cur_inst_type = (opcode == `OPCODE_LUI) ? U_TYPE : 0; //not sure if i need this characterization of instruction type
          assign eu_funct7_in = (opcode == `OPCODE_BRANCH && (funct3 == `FUNC_BEQ | funct3 == `FUNC_BNE)) ? `AUX_FUNC_SUB : //beq, bne 
                                (opcode == `OPCODE_BRANCH && (funct3 == `FUNC_BLT | funct3 == `FUNC_BGE | funct3 == `FUNC_BLTU | funct3 == `FUNC_BGEU)) ? `AUX_FUNC_ADD : //blt, bge, bltu, bgeu
-                               (opcode == `OPCODE_COMPUTE_IMMEDIATE) ? 7'b0000000: 
-                               funct7; 
+                               (opcode == `OPCODE_COMPUTE_IMMEDIATE) ? 7'b0110000: funct7; 
          assign eu_funct3_in = (opcode == `OPCODE_BRANCH && (funct3 == `FUNC_BNE)) ? 3'b000 : //bne
                                (opcode == `OPCODE_BRANCH && (funct3 == `FUNC_BLT | funct3 == `FUNC_BGE)) ? 3'b010 : //blt, bge
                                (opcode == `OPCODE_BRANCH && (funct3 == `FUNC_BLTU | funct3 == `FUNC_BGEU)) ? 3'b011 : //bltu, bgeu
@@ -166,6 +165,8 @@ module SingleCycleCPU(halt, clk, rst);
    assign funct3 = InstWord[14:12];  // R-Type, I-Type, S-Type
    assign funct7 = InstWord[31:25];  // R-Type
    assign imm_u_type = InstWord[31:12];
+   assign Shamt = InstWord[24:20];
+   assign SR_control = InstWord[31:30];
    assign sext_imm_u_type = {{12{InstWord[31]}},InstWord[31:12]};
    assign imm_front_s_type = InstWord[31:25];
    assign imm_back_s_type = InstWord[11:7];
@@ -183,7 +184,7 @@ module SingleCycleCPU(halt, clk, rst);
    //assign RWrEn = 1'b1;  // At the moment every instruction will write to the register file
 
    // Hardwired to support R-Type instructions -- please add muxes and other control signals
-   ExecutionUnit EU(.out(eu_out), .opA(Rdata1), .opB(Rdata2_in), .func(eu_funct3_in), .auxFunc(eu_funct7_in));
+   ExecutionUnit EU(.out(eu_out), .opA(Rdata1), .opB(Rdata2_in), .func(eu_funct3_in), .auxFunc(eu_funct7_in), .opBS(Shamt), .sr_C(SR_control));
 
    // Fetch Address Datapath, notably PC_MEM
    assign PC_Plus_4 = PC + 4;
@@ -196,11 +197,14 @@ endmodule // SingleCycleCPU
 
 
 
-module ExecutionUnit(out, opA, opB, func, auxFunc);
+module ExecutionUnit(out, opA, opB, func, auxFunc, opBS, sr_C);
    output [`WORD_WIDTH-1:0] out;
    input [`WORD_WIDTH-1:0]  opA, opB;
    input [2:0] 	 func;
    input [6:0] 	 auxFunc;
+   input [4:0] 	 opBS;
+   input [1:0] 	 sr_C;  
+
    
    //Copied over from Zach's Lab 2
    //define operation codes
@@ -226,18 +230,31 @@ module ExecutionUnit(out, opA, opB, func, auxFunc);
 
     localparam FUNC_0 = 7'b0000000,
                FUNC_1 = 7'b0100000,
-               FUNC_2 = 7'b0000001;
+               FUNC_2 = 7'b0000001,
+               FUNC_3 = 7'b0110000;
 
   //Dataflow model
     assign out =
+      (func == OP_ADD && auxFunc == FUNC_3) ? (opA + opB) :
+      (func == OP_SLT && auxFunc == FUNC_3) ? (($signed(opA) < $signed(opB)) ? 32'd1 : 32'd0) :
+      (func == OP_SLTU && auxFunc == FUNC_3) ? ((opA < opB) ? 32'd1 : 32'd0) :
+      (func == OP_XOR && auxFunc == FUNC_3) ? (opA ^ opB) :
+      (func == OP_OR  && auxFunc == FUNC_3) ? (opA | opB) :
+      (func == OP_AND && auxFunc == FUNC_3) ? (opA & opB) :
+
+      (func == OP_SLL && auxFunc == FUNC_3) ? (opA << opBS) :
+      (func == OP_SRL && auxFunc == FUNC_3 && sr_C == 2'd0) ? (opA >> opBS) :
+      (func == OP_SRA && auxFunc == FUNC_3 && sr_C == 2'd1) ? ((opA >> opBS) | ({32{opA[31]}} << (32 - opBS))) :
+      
+
       (func == OP_ADD && auxFunc == FUNC_0) ? (opA + opB) :
       (func == OP_SUB && auxFunc == FUNC_1) ? (opA - opB) :
-      (func == OP_SLL && auxFunc == FUNC_0) ? (opA <<  opB[4:0]) :
+      (func == OP_SLL && auxFunc == FUNC_0) ? (opA << opB[4:0]) :
       (func == OP_SLT && auxFunc == FUNC_0) ? (($signed(opA) < $signed(opB)) ? 32'd1 : 32'd0) :
       (func == OP_SLTU && auxFunc == FUNC_0) ? ((opA < opB) ? 32'd1 : 32'd0) :
       (func == OP_XOR && auxFunc == FUNC_0) ? (opA ^ opB) :
       (func == OP_SRL && auxFunc == FUNC_0) ? (opA >>  opB[4:0]) :
-      (func == OP_SRA && auxFunc == FUNC_1) ? ((sA >>> opB[4:0])) :
+      (func == OP_SRA && auxFunc == FUNC_1) ? ((opA >> opB[4:0]) | ({32{opA[31]}} << (32 - opB[4:0]))) :
       (func == OP_OR  && auxFunc == FUNC_0) ? (opA | opB) :
       (func == OP_AND && auxFunc == FUNC_0) ? (opA & opB) :
 

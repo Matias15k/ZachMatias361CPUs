@@ -63,28 +63,28 @@ A4
 c6
 00
 
-13      // [0x34] NOP
+13      // [0x34] Shift r16 left by 4 put in r17
+19
+48
 00
+
+93      // [0x38] Shift r16 right by 4 put in r17
+58
+48
+00
+
+93      // [0x3C] SEXT Shift r16 right by 4 put in r17
+59
+48
+40
+
+03      // [0x40] load byte unsigned R0 + 1 put in r24
+4c
 00
 00
 
-13      // [0x38] NOP
-00
-00
-00
-
-13      // [0x3C] NOP
-00
-00
-00
-
-13      // [0x40] NOP
-00
-00
-00
-
-13      // [0x44] NOP
-00
+83      // [0x44] load halfword unsigned R0 + 1 put in r25
+5c
 00
 00
 
