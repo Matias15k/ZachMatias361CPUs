@@ -54,25 +54,23 @@ module SingleCycleCPU(halt, clk, rst);
    wire [`WORD_WIDTH-1:0] Rdata1, Rdata2, RWrdata;
    wire        RWrEn;
    
-   // Instruction Decode Wires (Extract from InstWord)
+   // Instruction Decode Wires, extract from InstWord
    wire [6:0]  opcode = InstWord[6:0];   
    wire [4:0]  Rdst = InstWord[11:7]; 
    wire [4:0]  Rsrc1 = InstWord[19:15]; 
    wire [4:0]  Rsrc2 = InstWord[24:20];
    wire [2:0]  funct3 = InstWord[14:12]; 
    wire [6:0]  funct7 = InstWord[31:25];  
-   wire [4:0] Shamt = InstWord[24:20];
-   wire [1:0] SR_control = InstWord[31:30];
+   wire [4:0] Shamt = InstWord[24:20]; //shift amount
+   wire [1:0] SR_control = InstWord[31:30]; //top two bits indicate shift control (left/00 vs right/01)
 
-   // Immediate Value Generation (FIXED)
+   // Immediate Value Generation
    // I-Type Immediate (Load, ADDI, JALR)
    wire [11:0] imm_i_raw = InstWord[31:20];
    wire [31:0] imm_i_type_sext = {{20{imm_i_raw[11]}}, imm_i_raw}; // sign-extended 32-bit
-   
    // S-Type Immediate (Store)
    wire [11:0] imm_s_raw = {InstWord[31:25], InstWord[11:7]};
    wire [31:0] imm_s_type_sext = {{20{imm_s_raw[11]}}, imm_s_raw};
-   
    // B-Type Immediate (Branch) (FIXED: 33-bit issue corrected)
    wire [31:0] imm_b_type = {
                             {19{InstWord[31]}},  // Sign extension to fill 19 MSBs
@@ -82,10 +80,8 @@ module SingleCycleCPU(halt, clk, rst);
                             InstWord[11:8],      // Imm[4:1]
                             1'b0                // Imm[0]
                             };
-   
    // U-Type Immediate (LUI, AUIPC)
    wire [31:0] imm_u_type_shifted = {InstWord[31:12], 12'b0};
-   
    // J-Type Immediate (JAL) (FIXED: Corrected bit concatenation)
    wire [31:0] imm_j_type_offset = {
                                    {12{InstWord[31]}},  // Sign extension to fill 12 MSBs
@@ -198,7 +194,7 @@ module SingleCycleCPU(halt, clk, rst);
    // Hardwired to support R-Type instructions -- please add muxes and other control signals
    ExecutionUnit EU(.out(eu_out), .opA(Rdata1), .opB(Rdata2_in), .func(eu_funct3_in), .auxFunc(eu_funct7_in), .opBS(Shamt), .sr_C(SR_control));
 
-   // Next PC Mux (FIXED: using corrected J-type immediate)
+   // Next PC Mux
    assign PC_Plus_4 = PC + 4;
    
    wire [31:0] branch_target = PC + imm_b_type;
@@ -239,7 +235,6 @@ module ExecutionUnit(out, opA, opB, func, auxFunc, opBS, sr_C);
                OP_SRA= 3'b101,
                OP_OR = 3'b110,
                OP_AND = 3'b111,
-               ///////////////
                OP_MUL = 3'b000,
                OP_MULH = 3'b001,
                OP_MULHSU = 3'b010,
@@ -254,7 +249,7 @@ module ExecutionUnit(out, opA, opB, func, auxFunc, opBS, sr_C);
                FUNC_2 = 7'b0000001, // AUX_FUNC_M
                FUNC_3 = 7'b0110000; // I-Type auxFunc
 
-  //Dataflow model (FIXED: Improved Shift Right Arithmetic to handle shift-by-zero correctly)
+  //Dataflow model
     assign out =
       // I-Type Arithmetic (ADDI, SLTI, etc) - OpB is immediate
       (auxFunc == FUNC_3) ? (
@@ -316,7 +311,7 @@ module ExecutionUnit(out, opA, opB, func, auxFunc, opBS, sr_C);
 
    wire div_by_zero = (opB == 32'b0);
    
-   // DIV Logic (FIXED: overflow check was slightly off, ensure B is -1)
+   // DIV Logic 
    wire signed [31:0] div_q_signed = div_by_zero ? 32'hFFFFFFFF :  
                                      (sA == 32'sh80000000 && sB == 32'hFFFFFFFF) ? 32'sh80000000 : 
                                      sA / sB; 
