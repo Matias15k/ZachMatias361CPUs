@@ -5,7 +5,7 @@ OUT_DIR   = outputs
 EXE       = $(OUT_DIR)/executable_pipelined
 
 # List your test names
-TESTS = lui
+TESTS = lui easy jump immediate shifts alu stores loads forwarding1 forwarding2
 
 all: $(EXE)
 

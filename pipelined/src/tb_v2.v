@@ -143,16 +143,16 @@ module tb_v2;
                  CPU.IFID_flush, CPU.IFID_WE);
 
         // ID-stage control word (decoded)
-        $display("ID    : op=%02x rs1=%2d rs2=%2d rd=%2d f3=%0d f7=%02x",
+        $display("ID    : op=%02b rs1=%2d rs2=%2d rd=%2d f3=%0b f7=%02b",
                  CPU.opcode, CPU.Rsrc1, CPU.Rsrc2, CPU.Rdst,
                  CPU.funct3, CPU.funct7);
-        $display("ID_ctl: RegW=%b MemR=%b MemW=%b MemToReg=%b Br=%b Jal=%b Jalr=%b Size=%02b f3=%0d",
+        $display("ID_ctl: RegW=%b MemR=%b MemW=%b MemToReg=%b Br=%b Jal=%b Jalr=%b Size=%02b f3=%0b",
                  CPU.RegWrite_ID, CPU.MemRead_ID, CPU.MemWrite_ID, CPU.MemToReg_ID,
                  CPU.IsBranch_ID, CPU.IsJal_ID, CPU.IsJalr_ID,
                  CPU.Size_ID, CPU.BranchFunct3_ID);
 
         // ID/EX pipeline regs + control bus
-        $display("ID/EX : PC=%08x rs1=%2d rs2=%2d rd=%2d op=%02x f3=%0d f7=%02x  imm_i=%08x imm_u=%08x",
+        $display("ID/EX : PC=%08x rs1=%2d rs2=%2d rd=%2d op=%02b f3=%0b f7=%02b  imm_i=%08x imm_u=%08x",
                  CPU.IDEX_PC, CPU.IDEX_rs1, CPU.IDEX_rs2, CPU.IDEX_rd,
                  CPU.IDEX_opcode, CPU.IDEX_funct3, CPU.IDEX_funct7,
                  CPU.IDEX_imm_i, CPU.IDEX_imm_u);
@@ -162,7 +162,7 @@ module tb_v2;
         $display("EX    : opA=%08x opB=%08x EU_out=%08x EX_result=%08x  br_taken=%b PC_tgt=%08x",
                  CPU.EX_opA, CPU.EX_opB_raw, CPU.EX_eu_out, CPU.EX_result,
                  CPU.EX_branch_taken, CPU.EX_PC_target);
-        $display("EX_ctl: RegW=%b MemR=%b MemW=%b MemToReg=%b Br=%b Jal=%b Jalr=%b Size=%02b f3=%0d",
+        $display("EX_ctl: RegW=%b MemR=%b MemW=%b MemToReg=%b Br=%b Jal=%b Jalr=%b Size=%02b f3=%0b",
                  CPU.RegWrite_EX, CPU.MemRead_EX, CPU.MemWrite_EX, CPU.MemToReg_EX,
                  CPU.IsBranch_EX, CPU.IsJal_EX, CPU.IsJalr_EX,
                  CPU.Size_EX, CPU.BranchFunct3_EX);
@@ -171,7 +171,7 @@ module tb_v2;
         $display("EX/MEM: ALU_out=%08x store=%08x addr=%08x rd=%2d",
                  CPU.EXMEM_ALU_out, CPU.EXMEM_store_data, CPU.EXMEM_addr, CPU.EXMEM_rd);
         $display("EXMEM_ctl: %b", CPU.EXMEM_ctrl_out);
-        $display("MEM_ctl: RegW=%b MemR=%b MemW=%b MemToReg=%b Jal=%b Jalr=%b Size=%02b f3=%0d",
+        $display("MEM_ctl: RegW=%b MemR=%b MemW=%b MemToReg=%b Jal=%b Jalr=%b Size=%02b f3=%0b",
                  CPU.RegWrite_MEM, CPU.MemRead_MEM, CPU.MemWrite_MEM, CPU.MemToReg_MEM,
                  CPU.IsJal_MEM, CPU.IsJalr_MEM,
                  CPU.EXMEM_Size, CPU.EXMEM_funct3);
@@ -185,7 +185,7 @@ module tb_v2;
         $display("MEM/WB: ALU_out=%08x DataWord=%08x addr=%08x rd=%2d",
                  CPU.MEMWB_ALU_out, CPU.MEMWB_DataWord, CPU.MEMWB_addr, CPU.MEMWB_rd);
         $display("MEMWB_ctl: %b", CPU.MEMWB_ctrl_out);
-        $display("WB_ctl: RegW=%b MemToReg=%b Jal=%b Jalr=%b f3=%0d",
+        $display("WB_ctl: RegW=%b MemToReg=%b Jal=%b Jalr=%b f3=%0b",
                  CPU.RegWrite_WB, CPU.MemToReg_WB, CPU.IsJal_WB, CPU.IsJalr_WB,
                  CPU.MEMWB_funct3);
 
@@ -195,6 +195,10 @@ module tb_v2;
         $display("CTRL  : load_use=%b stall_EX=%b EX_busy=%2d redirect=%b  halt=%b exit=%b",
                  CPU.load_use_hazard, CPU.stall_EX, CPU.EX_busy, CPU.EX_do_redirect,
                  halt, exit);
+
+
+        $display("SR_control(ID)=%b  ->  IDEX_SR_control=%b  -> used in EU=%b",
+        CPU.SR_control, CPU.IDEX_SR_control, CPU.IDEX_SR_control);
     end
 
     // ---------- END DEBUG PRINT ----------

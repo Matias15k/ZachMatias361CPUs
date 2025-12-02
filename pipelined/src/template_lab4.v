@@ -51,7 +51,6 @@ module PipelinedCPU(halt, clk, rst);
 
     // global register file interface (used in ID/WB)
     wire [4:0]  rd_WB;          // dest reg from WB
-    wire [31:0] Rdata1, Rdata2; // read ports
     wire [31:0] RWrdata_WB;     // data written back
     wire        RWrEn_WB;       // write enable in WB
 
@@ -164,12 +163,24 @@ module PipelinedCPU(halt, clk, rst);
                                     ID_IR[30:21],    // Imm[10:1]
                                     1'b0                // Imm[0]
                                    };
+   // raw outputs from the RegFile
+   wire [31:0] Rdata1_raw, Rdata2_raw;
+
    RegFile RF(
-    .AddrA(Rsrc1), .DataOutA(Rdata1),
-    .AddrB(Rsrc2), .DataOutB(Rdata2),
-    .AddrW(rd_WB), .DataInW(RWrdata_WB),
-    .WenW(RWrEn_WB), .CLK(clk)
+      .AddrA(Rsrc1), .DataOutA(Rdata1_raw),
+      .AddrB(Rsrc2), .DataOutB(Rdata2_raw),
+      .AddrW(rd_WB), .DataInW(RWrdata_WB),
+      .WenW(RWrEn_WB), .CLK(clk)
    );
+
+   // WB -> ID bypass (for same-cycle read-after-write)
+   wire [31:0] Rdata1 = (RWrEn_WB && (rd_WB != 5'd0) && (rd_WB == Rsrc1))
+                        ? RWrdata_WB
+                        : Rdata1_raw;
+
+   wire [31:0] Rdata2 = (RWrEn_WB && (rd_WB != 5'd0) && (rd_WB == Rsrc2))
+                        ? RWrdata_WB
+                        : Rdata2_raw;
 
    //Control Signals
    wire RegWrite_ID, MemWrite_ID, MemRead_ID, MemToReg_ID;
@@ -224,12 +235,26 @@ module PipelinedCPU(halt, clk, rst);
    Reg #(32) IDEX_IMM_J_REG  (.Din(imm_j_type_offset), .Qout(IDEX_imm_j),  .WE(IDEX_WE), .CLK(clk), .RST(rst));
    Reg #(5)  IDEX_RS1_REG    (.Din(Rsrc1),           .Qout(IDEX_rs1),      .WE(IDEX_WE), .CLK(clk), .RST(rst));
    Reg #(5)  IDEX_RS2_REG    (.Din(Rsrc2),           .Qout(IDEX_rs2),      .WE(IDEX_WE), .CLK(clk), .RST(rst));
-   Reg #(5)  IDEX_RD_REG     (.Din(Rdst),            .Qout(IDEX_rd),       .WE(IDEX_WE), .CLK(clk), .RST(rst));
-   Reg #(3)  IDEX_f3_REG     (.Din(funct3),          .Qout(IDEX_funct3),   .WE(IDEX_WE), .CLK(clk), .RST(rst));
+   //Reg #(5)  IDEX_RD_REG     (.Din(Rdst),            .Qout(IDEX_rd),       .WE(IDEX_WE), .CLK(clk), .RST(rst));
+   //Reg #(3)  IDEX_f3_REG     (.Din(funct3),          .Qout(IDEX_funct3),   .WE(IDEX_WE), .CLK(clk), .RST(rst));
    Reg #(7)  IDEX_f7_REG     (.Din(funct7),          .Qout(IDEX_funct7),   .WE(IDEX_WE), .CLK(clk), .RST(rst));
-   Reg #(7)  IDEX_OPCODE_REG (.Din(opcode),       .Qout(IDEX_opcode),   .WE(IDEX_WE), .CLK(clk), .RST(rst));
+   //Reg #(7)  IDEX_OPCODE_REG (.Din(opcode),       .Qout(IDEX_opcode),   .WE(IDEX_WE), .CLK(clk), .RST(rst));
    Reg #(5)  IDEX_Shamt_REG  (.Din(Shamt),           .Qout(IDEX_Shamt),    .WE(IDEX_WE), .CLK(clk), .RST(rst));
    Reg #(2)  IDEX_SRC_REG    (.Din(SR_control),      .Qout(IDEX_SR_control), .WE(IDEX_WE), .CLK(clk), .RST(rst));
+
+   // Bubbled versions when inserting a bubble (load-use hazard or redirect)
+   wire [4:0] IDEX_rd_Din      = IDEX_flush ? 5'd0  : Rdst;
+   wire [2:0] IDEX_funct3_Din  = IDEX_flush ? 3'd0  : funct3;
+   wire [6:0] IDEX_opcode_Din  = IDEX_flush ? 7'd0  : opcode;
+   Reg #(5)  IDEX_RD_REG     (.Din(IDEX_rd_Din),
+                              .Qout(IDEX_rd),
+                              .WE(IDEX_WE), .CLK(clk), .RST(rst));
+   Reg #(3)  IDEX_f3_REG     (.Din(IDEX_funct3_Din),
+                              .Qout(IDEX_funct3),
+                              .WE(IDEX_WE), .CLK(clk), .RST(rst));
+   Reg #(7)  IDEX_OPCODE_REG (.Din(IDEX_opcode_Din),
+                              .Qout(IDEX_opcode),
+                              .WE(IDEX_WE), .CLK(clk), .RST(rst));
 
    // control bus with bubble on flush
    assign IDEX_flush = load_use_hazard | EX_do_redirect;
@@ -284,16 +309,28 @@ module PipelinedCPU(halt, clk, rst);
          EX_useImmS ? IDEX_imm_s : //Store: imm_s
                      EX_R2_fwd; //R-Type: R2
          
+   wire is_load_store_EX = (IDEX_opcode == `OPCODE_LOAD) ||
+                        (IDEX_opcode == `OPCODE_STORE);
+
    // ALU Funct7 Mux (eu_funct7_in)
    assign EX_eu_funct7_in = (IDEX_opcode == `OPCODE_BRANCH && (IDEX_funct3 == `FUNC_BEQ | IDEX_funct3 == `FUNC_BNE)) ? `AUX_FUNC_SUB : 
                          (IDEX_opcode == `OPCODE_BRANCH && (IDEX_funct3 == `FUNC_BLT | IDEX_funct3 == `FUNC_BGE | IDEX_funct3 == `FUNC_BLTU | IDEX_funct3 == `FUNC_BGEU)) ? `AUX_FUNC_ADD : // All comparisons use R-Type ADD/SLT auxfunc
                          (IDEX_opcode == `OPCODE_COMPUTE_IMMEDIATE) ? 7'b0110000: IDEX_funct7; // I-Type uses FUNC_3 (7'b0110000)
                             
    // ALU Funct3 Mux (eu_funct3_in)
-   assign EX_eu_funct3_in = (IDEX_opcode == `OPCODE_BRANCH && (IDEX_funct3 == `FUNC_BEQ | IDEX_funct3 == `FUNC_BNE)) ? `FUNC_ADD : // BEQ/BNE: Use ADD func3 (to trigger SUB when auxFunc=FUNC_1)
-                         (IDEX_opcode == `OPCODE_BRANCH && (IDEX_funct3 == `FUNC_BLT | IDEX_funct3 == `FUNC_BGE)) ? `FUNC_SLT : // BLT/BGE: Use SLT func3
-                         (IDEX_opcode == `OPCODE_BRANCH && (IDEX_funct3 == `FUNC_BLTU | IDEX_funct3 == `FUNC_BGEU)) ? `FUNC_SLTU : // BLTU/BGEU: Use SLTU func3
-                        IDEX_funct3; // Default to instruction's funct3 for Load/Store/R-Type/I-Type
+   // assign EX_eu_funct3_in = (IDEX_opcode == `OPCODE_BRANCH && (IDEX_funct3 == `FUNC_BEQ | IDEX_funct3 == `FUNC_BNE)) ? `FUNC_ADD : // BEQ/BNE: Use ADD func3 (to trigger SUB when auxFunc=FUNC_1)
+   //                       (IDEX_opcode == `OPCODE_BRANCH && (IDEX_funct3 == `FUNC_BLT | IDEX_funct3 == `FUNC_BGE)) ? `FUNC_SLT : // BLT/BGE: Use SLT func3
+   //                       (IDEX_opcode == `OPCODE_BRANCH && (IDEX_funct3 == `FUNC_BLTU | IDEX_funct3 == `FUNC_BGEU)) ? `FUNC_SLTU : // BLTU/BGEU: Use SLTU func3
+   //                      IDEX_funct3; // Default to instruction's funct3 for Load/Store/R-Type/I-Type
+   assign EX_eu_funct3_in =
+    // Branches
+    (IDEX_opcode == `OPCODE_BRANCH && (IDEX_funct3 == `FUNC_BEQ | IDEX_funct3 == `FUNC_BNE))  ? `FUNC_ADD  :
+    (IDEX_opcode == `OPCODE_BRANCH && (IDEX_funct3 == `FUNC_BLT | IDEX_funct3 == `FUNC_BGE))  ? `FUNC_SLT  :
+    (IDEX_opcode == `OPCODE_BRANCH && (IDEX_funct3 == `FUNC_BLTU | IDEX_funct3 == `FUNC_BGEU)) ? `FUNC_SLTU :
+    // LOAD / STORE: always ADD for base + offset
+    is_load_store_EX ? `FUNC_ADD :
+    // Everything else (R-type / I-type ALU)
+    IDEX_funct3;
    
    wire [31:0] EX_eu_out;
     // Execution unit
@@ -579,7 +616,7 @@ module ExecutionUnit(out, opA, opB, func, auxFunc, opBS, sr_C);
         (func == OP_AND) ? (opA & opB) :
         (func == OP_SLL) ? (opA << opBS) : // SLLI
         (func == OP_SRL && sr_C == 2'd0) ? (opA >> opBS) : // SRLI
-        (func == OP_SRA && sr_C == 2'd1) ? ($signed(opA) >>> opBS) : // SRAI (using system task for clarity)
+        (func == OP_SRA && sr_C == 2'd1) ? $signed(($signed(opA) >>> opBS)) : // SRAI
         32'b0
       ) :
       
@@ -599,11 +636,11 @@ module ExecutionUnit(out, opA, opB, func, auxFunc, opBS, sr_C);
       // R-Type Subtraction/SRA (auxFunc == FUNC_1) - OpB is register
       (auxFunc == FUNC_1) ? (
         (func == OP_SUB) ? (opA - opB) :
-        (func == OP_SRA) ? ($signed(opA) >>> opB[4:0]) : // SRA
+        (func == OP_SRA) ? $signed($signed(opA) >>> opB[4:0]) : // SRA
         32'b0
       ) :
 
-      // M-Extension Instructions (auxFunc == FUNC_2) (FIXED: DIV by zero checks)
+      // M-Extension Instructions (auxFunc == FUNC_2) 
       (auxFunc == FUNC_2) ? (
         (func == OP_MUL) ? (mul_uu[31:0]) : 
         (func == OP_MULH) ? (mul_ss[63:32]) : 

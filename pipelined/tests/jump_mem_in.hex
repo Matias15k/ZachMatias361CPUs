@@ -1,0 +1,39 @@
+ef  // 0x0000: jal x3, 8
+01
+80
+00
+
+93  // 0x0004: addi x5, x0, 5  (should be skipped)
+02
+50
+00
+
+13  // 0x0008: addi x6, x0, 6
+03
+60
+00
+
+67  // 0x000c: jalr x4, x1, 4
+80
+40
+00
+
+93  // 0x0010: addi x7, x0, 7 (skipped)
+03
+70
+00
+
+13  // 0x0014: addi x0, x0, 0 (nop, skipped)
+00
+00
+00
+
+13  // 0x0018: addi x8, x0, 8
+04
+80
+00
+
+ff  // 0x001c: bad opcode to halt
+ff
+ff
+ff
