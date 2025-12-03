@@ -1,0 +1,38 @@
+93 00 f0 ff
+13 01 20 00
+b7 01 00 80
+
+33 c5 20 02
+b3 d5 20 02
+33 e6 20 02
+b3 f6 20 02
+
+33 47 01 02
+b3 57 01 02
+33 68 01 02
+b3 78 01 02
+
+33 c9 11 02
+b3 e9 11 02
+
+ff ff ff ff
+
+/*
+addi  x1,x0,-1
+addi  x2,x0,2
+lui   x3,0x80000
+
+div   x10,x1,x2
+divu  x11,x1,x2
+rem   x12,x1,x2
+remu  x13,x1,x2
+
+div   x14,x2,x0
+divu  x15,x2,x0
+rem   x16,x2,x0
+remu  x17,x2,x0
+
+div   x18,x3,x1
+rem   x19,x3,x1
+
+*/

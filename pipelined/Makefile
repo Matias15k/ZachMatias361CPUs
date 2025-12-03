@@ -4,8 +4,8 @@ TOP_SRCS  = src/template_lab4.v src/tb_v2.v
 OUT_DIR   = outputs
 EXE       = $(OUT_DIR)/executable_pipelined
 
-# List your test names
-TESTS = lui easy jump immediate shifts alu stores loads forwarding1 forwarding2
+# List test names here!
+TESTS = lui easy jump immediate shifts alu stores loads forwarding1 forwarding2 compilation_1 compilation_2 compilation_3 basic_raw basic_load_store
 
 all: $(EXE)
 

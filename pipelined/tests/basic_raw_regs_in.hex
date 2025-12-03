@@ -1,0 +1,35 @@
+// Initial register values
+// BASIC ADD SUB RAW HAZARD
+00000000  // x0 (always 0)
+00000001  // x1 (will be 5)
+00000002  // x2 (will be 5)
+00000000  // x3 (will be 10)
+00000000  // x4 (will be -1 / 0xFFFFFFFF)
+00000000  // x5 (BEQ test result, should be 1)
+00000000  // x6 (BEQ test result, should be 2)
+00000000  // x7 (BNE test result, should be 3)
+00000000  // x8 (BNE test result, should be 4)
+00000000  // x9 (BLT test result, should be 5)
+00000000  // x10 (BLT test result, should be 6)
+00000000  // x11 (BGE test result, should be 7)
+00000000  // x12 (BGE test result, should be 8)
+00000000  // x13 (BLTU test result, should be 9)
+00000000  // x14 (BLTU test result, should be 10)
+00000000  // x15 (BGEU test result, should be 11)
+00000000  // x16 (BGEU test result, should be 12)
+00000000  // x17
+00000000  // x18
+00000000  // x19
+00000000  // x20
+00000000  // x21
+00000000  // x22
+00000000  // x23
+00000000  // x24
+00000000  // x25
+00000000  // x26
+00000000  // x27
+00000000  // x28
+00000000  // x29
+00000000  // x30
+00000000  // x31
+
