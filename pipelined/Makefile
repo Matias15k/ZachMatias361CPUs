@@ -5,7 +5,7 @@ OUT_DIR   = outputs
 EXE       = $(OUT_DIR)/executable_pipelined
 
 # List test names here!
-TESTS = lui easy jump immediate shifts alu stores loads forwarding1 forwarding2 compilation_1 compilation_2 compilation_3 basic_raw basic_load_store
+TESTS = lui easy jump immediate shifts alu stores loads forwarding1 forwarding2 compilation_1 compilation_2 compilation_3 basic_raw basic_load_store mem_alignment_1 store_misalignment
 
 all: $(EXE)
 

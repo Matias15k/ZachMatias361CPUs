@@ -1,0 +1,22 @@
+// addi x1,x0,1         0x00100093
+93
+00
+10
+00
+// lh x2,0(x1)          0x00009103   (addr = 1 → misaligned halfword)
+03
+91
+00
+00
+
+//this should not complete, since it should halt
+B7
+00
+00
+12
+
+// halt (illegal)       0x00000000
+00
+00
+00
+00

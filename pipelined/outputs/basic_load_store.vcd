@@ -1,5 +1,5 @@
 $date
-	Wed Dec  3 15:15:39 2025
+	Wed Dec  3 16:25:27 2025
 $end
 $version
 	Icarus Verilog
@@ -520,7 +520,7 @@ $var wire 32 a$ DataOutB [31:0] $end
 $var wire 32 b$ DataOutA [31:0] $end
 $upscope $end
 $upscope $end
-$scope begin $unm_blk_3 $end
+$scope begin $unm_blk_4 $end
 $var integer 32 c$ timeout_cycles [31:0] $end
 $upscope $end
 $upscope $end
@@ -1992,5 +1992,57 @@ b100000 \$
 b1001 *
 1"
 #90
-1#
 0"
+#95
+xG
+bx0 8$
+bx00 9$
+bx ^"
+bx ?$
+bx O$
+xc
+x:
+xn
+xu
+xr
+x&"
+x""
+bx 9
+bx ;$
+bx \"
+bx X"
+bx {
+bx J$
+xZ
+x3
+x-
+b100000 U"
+b11100 D"
+b11100 h#
+bx ]"
+bx 7#
+bx E$
+bx ?
+bx :$
+bx V"
+bx C#
+bx ,
+bx 7$
+bx ["
+bx 3#
+bx @$
+bx W"
+bx ?#
+bx T$
+bx Y"
+bx ;#
+xF
+xE
+xN
+bx O"
+xM"
+bx P"
+bx H#
+1#
+b1010 *
+1"

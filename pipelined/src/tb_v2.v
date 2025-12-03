@@ -15,115 +15,11 @@ module tb_v2;
     // Clock Period = 10 time units
     always #5 clk = ~clk;
 
-    always @(negedge clk)
-        if (halt)
-            exit = 1;
+    // always @(negedge clk)
+    //     if (halt)
+    //         exit = 1;
 
     integer cycle;
-
-    // ---------- DEBUG PRINT EACH CYCLE ----------
-    // always @(posedge clk) begin
-    //     if (!rst) begin
-    //         cycle <= 0;
-    //     end else begin
-    //         cycle <= cycle + 1;
-
-    //         $display("\n=== CYCLE %3d  t=%0t ===", cycle, $time);
-
-    //         // One-line summary of PCs / IRs
-    //         $display("IF: PC=%08x IR=%08x  |  ID: PC=%08x IR=%08x  |  EX: PC=%08x  |  MEM: addr=%08x  |  WB: rd=%2d data=%08x",
-    //                 CPU.PC,
-    //                 CPU.InstWord,
-    //                 CPU.ID_PC,
-    //                 CPU.ID_IR,
-    //                 CPU.IDEX_PC,
-    //                 CPU.DataAddr,
-    //                 CPU.MEMWB_rd,
-    //                 CPU.RWrdata_WB);
-
-    //         // IF/ID
-    //         $display("IFID : PC=%08x IR=%08x  flush=%b  WE=%b",
-    //                 CPU.IFID_PC,
-    //                 CPU.IFID_IR,
-    //                 CPU.IFID_flush,
-    //                 CPU.IFID_WE);
-
-    //         // ID/EX key fields
-    //         $display("ID/EX: PC=%08x rs1=%2d rs2=%2d rd=%2d op=%02b f3=%1b f7=%02b  imm_i=%08x imm_u=%08x",
-    //                 CPU.IDEX_PC,
-    //                 CPU.IDEX_rs1,
-    //                 CPU.IDEX_rs2,
-    //                 CPU.IDEX_rd,
-    //                 CPU.IDEX_opcode,
-    //                 CPU.IDEX_funct3,
-    //                 CPU.IDEX_funct7,
-    //                 CPU.IDEX_imm_i,
-    //                 CPU.IDEX_imm_u);
-
-    //         // EX
-    //         $display("EX   : opA=%08x opB=%08x EU_out=%08x EX_result=%08x  br_taken=%b PC_tgt=%08x",
-    //                 CPU.EX_opA,
-    //                 CPU.EX_opB_raw,
-    //                 CPU.EX_eu_out,
-    //                 CPU.EX_result,
-    //                 CPU.EX_branch_taken,
-    //                 CPU.EX_PC_target);
-
-    //         $display("       RegW_EX=%b MemR_EX=%b MemW_EX=%b MemToReg_EX=%b IsBr_EX=%b IsJal_EX=%b IsJalr_EX=%b",
-    //                 CPU.RegWrite_EX,
-    //                 CPU.MemRead_EX,
-    //                 CPU.MemWrite_EX,
-    //                 CPU.MemToReg_EX,
-    //                 CPU.IsBranch_EX,
-    //                 CPU.IsJal_EX,
-    //                 CPU.IsJalr_EX);
-
-    //         // EX/MEM
-    //         $display("EX/MEM: ALU_out=%08x store=%08x addr=%08x rd=%2d  RegW_MEM=%b MemR_MEM=%b MemW_MEM=%b Size=%02b",
-    //                 CPU.EXMEM_ALU_out,
-    //                 CPU.EXMEM_store_data,
-    //                 CPU.EXMEM_addr,
-    //                 CPU.EXMEM_rd,
-    //                 CPU.RegWrite_MEM,
-    //                 CPU.MemRead_MEM,
-    //                 CPU.MemWrite_MEM,
-    //                 CPU.EXMEM_Size);
-
-    //         // MEM
-    //         $display("MEM  : DataAddr=%08x StoreData=%08x DataWord=%08x MemWrEn=%b MemSize=%02b align_err=%b",
-    //                 CPU.DataAddr,
-    //                 CPU.StoreData,
-    //                 CPU.DataWord,
-    //                 CPU.MemWrEn,
-    //                 CPU.MemSize,
-    //                 CPU.memory_alignment_error_MEM);
-
-    //         // MEM/WB
-    //         $display("MEM/WB: ALU_out=%08x DataWord=%08x addr=%08x rd=%2d RegW_WB=%b MemToReg_WB=%b f3=%1d",
-    //                 CPU.MEMWB_ALU_out,
-    //                 CPU.MEMWB_DataWord,
-    //                 CPU.MEMWB_addr,
-    //                 CPU.MEMWB_rd,
-    //                 CPU.RegWrite_WB,
-    //                 CPU.MemToReg_WB,
-    //                 CPU.MEMWB_funct3);
-
-    //         // WB
-    //         $display("WB   : RWrEn_WB=%b rd_WB=%2d RWrdata_WB=%08x",
-    //                 CPU.RWrEn_WB,
-    //                 CPU.rd_WB,
-    //                 CPU.RWrdata_WB);
-
-    //         // Hazards / global
-    //         $display("CTRL : load_use=%b stall_EX=%b EX_busy=%2d redirect=%b  halt=%b exit=%b",
-    //                 CPU.load_use_hazard,
-    //                 CPU.stall_EX,
-    //                 CPU.EX_busy,
-    //                 CPU.EX_do_redirect,
-    //                 halt,
-    //                 exit);
-    //     end
-    //end
         always @(posedge clk) begin
         if (rst) cycle = cycle + 1;
 
@@ -199,9 +95,13 @@ module tb_v2;
 
         $display("SR_control(ID)=%b  ->  IDEX_SR_control=%b  -> used in EU=%b",
         CPU.SR_control, CPU.IDEX_SR_control, CPU.IDEX_SR_control);
-    end
 
-    // ---------- END DEBUG PRINT ----------
+        if (halt)
+            begin
+            $display("\n\nHalt detected. Exiting testbench... ggwp smh ur cooked");
+            exit = 1; //Exit only after we printed the last stage
+            end
+    end
 
     initial begin
         cycle = 0;
@@ -229,7 +129,6 @@ module tb_v2;
         $dumpfile(signal_dump_fname);
         $dumpvars();
 
-        // Optional: you can comment this out now, since we added the big display block
         // #0 $monitor($time,, "PC=%08x IR=%08x halt=%x exit=%x", CPU.PC, CPU.InstWord, halt, exit);
 
         // Exit

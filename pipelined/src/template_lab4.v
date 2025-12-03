@@ -1,6 +1,6 @@
 // Template for Northwestern - CompEng 361 - Lab4 
-// Groupname:
-// NetIDs:
+// Groupname: Zach Tey, Matias Ketema
+// NetIDs: vcs5888, tnc5178
 
 //General Parameters
    `define WORD_WIDTH 32
@@ -318,10 +318,6 @@ module PipelinedCPU(halt, clk, rst);
                          (IDEX_opcode == `OPCODE_COMPUTE_IMMEDIATE) ? 7'b0110000: IDEX_funct7; // I-Type uses FUNC_3 (7'b0110000)
                             
    // ALU Funct3 Mux (eu_funct3_in)
-   // assign EX_eu_funct3_in = (IDEX_opcode == `OPCODE_BRANCH && (IDEX_funct3 == `FUNC_BEQ | IDEX_funct3 == `FUNC_BNE)) ? `FUNC_ADD : // BEQ/BNE: Use ADD func3 (to trigger SUB when auxFunc=FUNC_1)
-   //                       (IDEX_opcode == `OPCODE_BRANCH && (IDEX_funct3 == `FUNC_BLT | IDEX_funct3 == `FUNC_BGE)) ? `FUNC_SLT : // BLT/BGE: Use SLT func3
-   //                       (IDEX_opcode == `OPCODE_BRANCH && (IDEX_funct3 == `FUNC_BLTU | IDEX_funct3 == `FUNC_BGEU)) ? `FUNC_SLTU : // BLTU/BGEU: Use SLTU func3
-   //                      IDEX_funct3; // Default to instruction's funct3 for Load/Store/R-Type/I-Type
    assign EX_eu_funct3_in =
     // Branches
     (IDEX_opcode == `OPCODE_BRANCH && (IDEX_funct3 == `FUNC_BEQ | IDEX_funct3 == `FUNC_BNE))  ? `FUNC_ADD  :
@@ -554,11 +550,11 @@ wire [31:0] wb_load_data =
                                   MEMWB_DataWord;                     // default (or bad funct3)
 
 // Final writeback value
-// - If MemToReg_WB == 1 → load data
-// - Else                → ALU result
+// - if MemToReg_WB == 1 ,  load data
+// - else, just ALU result
 wire [31:0] RWrdata_next = MemToReg_WB ? wb_load_data : MEMWB_ALU_out;
 
-// These go back into the RegFile in ID
+// these go back into the RegFile in ID
 assign RWrdata_WB = RWrdata_next;
 assign rd_WB      = MEMWB_rd;
 assign RWrEn_WB = RegWrite_WB;
@@ -653,7 +649,7 @@ module ExecutionUnit(out, opA, opB, func, auxFunc, opBS, sr_C);
       ) :
       32'b0; // Default output (shouldn't happen with correct control)
 
-   // M-instruction processsing ->
+   // M-instruction processsing 
    wire signed   [31:0] sA = opA;
    wire signed   [31:0] sB = opB;
    wire         [31:0] uA = opA;
